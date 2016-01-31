@@ -12,19 +12,15 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.TextView;
 
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.text.DecimalFormat;
 
 public class MainActivity extends AppCompatActivity implements SensorEventListener {
 
     private SensorManager mSensorManager;
-    private Sensor gyroscope, accelerometer, magnetometer;
+    private Sensor accelerometer;
     private TextView textView;
-    private String quadUrl = "http://192.168.0.103:8000";
-    private URL url;
-    private HttpURLConnection urlConnection;
     DecimalFormat df = new DecimalFormat("#.00");
+    int x = 0, y = 0, z = 9;
 
 //    private static final float NS2S = 1.0f / 1000000000.0f;
 //    private final float[] deltaRotationVector = new float[4];
@@ -75,10 +71,17 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         float axisX = event.values[0];
         float axisY = event.values[1];
         float axisZ = event.values[2];
+        if (x != (int) axisX || y != (int) axisY || z != (int) axisZ) {
+            x = (int) axisX;
+            y = (int) axisY;
+            z = (int) axisZ;
+            textView.setText("X: " + x + "\nY: " + y + "\nZ: " + z);
+            (new SendTilt()).execute("tilt", "" + x, "" + y, "" + z);
+        }
 
-        textView.setText("X: " + (int) axisX + "\nY: " + (int) axisY + "\nZ: " + (int) axisZ);
+        //textView.setText("X: " + (int) axisX + "\nY: " + (int) axisY + "\nZ: " + (int) axisZ);
         //textView.setText("X: " + df.format(axisX) + "\nY: " + df.format(axisY) + "\nZ: " + df.format(axisZ));
-        (new SendTilt()).execute("" + (int) axisX, "" + (int) axisY, "" + (int) axisZ);
+
     }
 
     @Override

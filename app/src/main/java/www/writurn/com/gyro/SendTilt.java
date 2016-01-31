@@ -26,7 +26,14 @@ public class SendTilt extends AsyncTask<String, Void, String> {
         // Create a new HttpClient and Post Header
         HttpClient httpclient = new DefaultHttpClient();
         HttpPost httppost = new HttpPost("http://192.168.0.103:8000");
-        String dataToSend = "{\"type\": \"motor\", \"num\": \"1\", \"operation\":\"incr\"}";
+        String dataToSend;// = "{\"type\": \"gyro\", \"command\": \"tilt\", \"operation\":\"incr\"}";
+        //dataToSend = params[0];
+        if (params[0] == "tilt") {
+            dataToSend = "{\"type\": \"gyro\", \"command\": \"tilt\", \"x\":" + params[1] + ", \"y\":" + params[2] + ", \"z\":" + params[3] + "}";
+        }
+        else {
+            dataToSend = "{\"type\": \"something\", \"command\": \"tilt\", \"operation\":\"incr\"}";
+        }
 
         try {
             // Add your data
