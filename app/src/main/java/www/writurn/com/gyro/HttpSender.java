@@ -25,7 +25,8 @@ public class HttpSender extends AsyncTask<String, Void, String> {
         byte[] result = null;
         // Create a new HttpClient and Post Header
         HttpClient httpclient = new DefaultHttpClient();
-        HttpPost httppost = new HttpPost("http://192.168.0.103:8000");
+        //HttpPost httppost = new HttpPost("http://192.168.0.103:8000");
+        HttpPost httppost = new HttpPost("http://169.254.151.12:8000");
         String dataToSend;// = "{\"type\": \"gyro\", \"command\": \"tilt\", \"operation\":\"incr\"}";
         //dataToSend = params[0];
         if (params[0] == "tilt") {
