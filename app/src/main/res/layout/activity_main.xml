@@ -20,18 +20,6 @@
         android:maxWidth="0dp"
         android:maxHeight="0dp" />
 
-    <!--<ImageView-->
-    <!--android:layout_width="wrap_content"-->
-    <!--android:layout_height="wrap_content"-->
-    <!--android:id="@+id/ballButton"-->
-    <!--android:layout_marginLeft="53.5dp"-->
-    <!--android:layout_marginStart="59dp"-->
-    <!--android:adjustViewBounds="true"-->
-    <!--android:maxWidth="80dp"-->
-    <!--android:src="@drawable/joyball"-->
-    <!--android:layout_centerVertical="true"-->
-    <!--android:layout_alignParentLeft="true"-->
-    <!--android:layout_alignParentStart="true" />-->
 
     <TextView
         android:layout_width="wrap_content"
