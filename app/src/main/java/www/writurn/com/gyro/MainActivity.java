@@ -8,6 +8,7 @@ import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiManager;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.TypedValue;
 import android.view.Menu;
@@ -15,10 +16,18 @@ import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
+import android.widget.CompoundButton;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
 import android.widget.Switch;
-
+import java.io.BufferedReader;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.text.DecimalFormat;
 import java.util.List;
 
@@ -28,7 +37,7 @@ public class MainActivity extends Activity implements SensorEventListener {
     ImageView iv, iv1;
     RelativeLayout.LayoutParams params, params1;
     RelativeLayout rlMain;
-    Switch gyroToggle;
+    Switch wifiToggle;
     private SensorManager mSensorManager;
     private Sensor accelerometer;
     DecimalFormat df = new DecimalFormat("#.00");
@@ -37,8 +46,17 @@ public class MainActivity extends Activity implements SensorEventListener {
     String networkSSID = "RasPi";
     String networkPass = "Raspberry!";
 
+    URL url;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+
+        try {
+            url = new URL("http://169.254.151.12:8000");
+        }
+        catch(MalformedURLException e) {
+            e.printStackTrace();
+        }
 
         WifiConfiguration conf = new WifiConfiguration();
         conf.SSID = "\"" + networkSSID + "\"";
@@ -62,7 +80,9 @@ public class MainActivity extends Activity implements SensorEventListener {
         super.onCreate(savedInstanceState);
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
         setContentView(R.layout.activity_main);
+
         sliderSpace = (ImageView) findViewById(R.id.slider);
+        wifiToggle = (Switch) findViewById(R.id.gyroToggle);
 
         iv = new ImageView(this);
         iv.setImageResource(R.drawable.joyball);
@@ -112,11 +132,11 @@ public class MainActivity extends Activity implements SensorEventListener {
                             params1.topMargin = (int) event.getRawY() - 200;
                             iv.setLayoutParams(params1);
 
+
                             if (event.getRawY() <= 559) {
-                                (new HttpSender()).execute("throttle", "up", "medium", "");
-                            }
-                            else if (event.getRawY() >= 559) {
-                                (new HttpSender()).execute("throttle", "down", "medium", "");
+                                new Poster().execute("throttle", "up", "medium", "");
+                            } else if (event.getRawY() >= 559) {
+                                new Poster().execute("throttle", "down", "medium", "");
                             }
 
                         }
@@ -128,6 +148,50 @@ public class MainActivity extends Activity implements SensorEventListener {
                         break;
                 }
                 return true;
+            }
+        });
+
+        wifiToggle.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if (isChecked) {
+                    networkSSID = "suhas";
+                    networkPass = "reebokpuma";
+                    try {
+                        url = new URL("http://192.168.0.103:8000");
+                    }
+                    catch (MalformedURLException e) {
+                        e.printStackTrace();
+                    }
+                }
+                else {
+                    networkSSID = "RasPi";
+                    networkPass = "Raspberry!";
+                    try {
+                        url = new URL("http://169.254.151.12:8000");
+                    }
+                    catch (MalformedURLException e) {
+                        e.printStackTrace();
+                    }
+                }
+
+                WifiConfiguration conf = new WifiConfiguration();
+                conf.SSID = "\"" + networkSSID + "\"";
+                conf.preSharedKey = "\""+ networkPass +"\"";
+                WifiManager wifiManager = (WifiManager) getSystemService(Context.WIFI_SERVICE);
+                wifiManager.addNetwork(conf);
+
+                List<WifiConfiguration> list = wifiManager.getConfiguredNetworks();
+
+                for( WifiConfiguration i : list ) {
+                    if(i.SSID != null && i.SSID.equals("\"" + networkSSID + "\"")) {
+                        wifiManager.disconnect();
+                        wifiManager.enableNetwork(i.networkId, true);
+                        wifiManager.reconnect();
+
+                        break;
+                    }
+                }
             }
         });
     }
@@ -154,7 +218,7 @@ public class MainActivity extends Activity implements SensorEventListener {
                 x = tempX;
                 y = tempY;
                 z = (int) axisZ;
-                (new HttpSender()).execute("tilt", "" + x, "" + y, "" + z);
+                new Poster().execute("tilt", "" + x, "" + y, "" + z);
             }
         }
 
@@ -224,5 +288,50 @@ public class MainActivity extends Activity implements SensorEventListener {
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+
+    public class Poster extends AsyncTask<String, Void, String> {
+
+        final StringBuilder responseOutput = new StringBuilder();
+        String responseMessage;
+
+
+        @Override
+        protected String doInBackground(String... params) {
+            try {
+                HttpURLConnection connection = (HttpURLConnection)url.openConnection();
+                connection.setRequestMethod("POST");
+                connection.setDoOutput(true);
+                DataOutputStream dStream = new DataOutputStream(connection.getOutputStream());
+                String urlParameters = "{\"type\": \"" + params[0] + "\", \"direction\": \"" + params[1] + "\", \"speed\":\"" + params[2] + "\"}";
+                dStream.writeBytes(urlParameters);
+                dStream.flush();
+                dStream.close();
+                responseMessage = connection.getResponseMessage();
+                DataInputStream diS = new DataInputStream(connection.getInputStream());
+                BufferedReader br = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+
+                String line = "";
+                while((line = br.readLine()) != null ) {
+                    responseOutput.append(line);
+                }
+            }
+            catch (MalformedURLException e) {
+                e.printStackTrace();
+            }
+            catch (IOException e) {
+                e.printStackTrace();
+            }
+            return responseMessage;
+        }
+
+        protected void onPostExecute(String result) {
+            MainActivity.this.runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                }
+            });
+        }
     }
 }
